@@ -150,4 +150,17 @@ public class ProductoController {
         return ResponseEntity.ok(total);
     }
 
+    @GetMapping("/reporte/prioridad-venta")
+    @Operation(summary = "Lista de productos mas antiguos (venta inmediata)")
+    public List<Producto> listarPorAntiguedad() {
+        return productoRepository.findAllByOrderByFechaElaboracionAsc();
+    }
+
+    @GetMapping("/reporte/stock-por-categoria")
+    @Operation(summary = "Para saber cuántos productos hay de una categoría específica")
+    public ResponseEntity<String> stockPorCategoria(@RequestParam String categoria) {
+        List<Producto> lista = productoRepository.findByCategoriaIgnoreCase(categoria);
+        return ResponseEntity.ok("En la categoría " + categoria + " hay " + lista.size() + " unidades en sistema.");
+    }
+
 }

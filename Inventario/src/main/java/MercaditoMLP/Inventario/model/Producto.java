@@ -26,7 +26,7 @@ public class Producto {
     private Integer stockTrozos; //cantidad de trozos
 
     private LocalDate fechaElaboracion;
-    @JsonProperty("fechaLlegada")
-    private LocalDate fechaLLegada;
+
+    private LocalDate fechaLlegada;
 
 }

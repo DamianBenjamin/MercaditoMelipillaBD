@@ -1,6 +1,7 @@
 package MercaditoMLP.Inventario.controller;
 
 
+import MercaditoMLP.Inventario.dto.ResumenStockDTO;
 import MercaditoMLP.Inventario.model.Producto;
 import MercaditoMLP.Inventario.repository.ProductoRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/productos")
@@ -43,7 +46,7 @@ public class ProductoController {
             nuevo.setNombre(producto.getNombre());
             nuevo.setCategoria(producto.getCategoria());
             nuevo.setFechaElaboracion(producto.getFechaElaboracion());
-            nuevo.setFechaLLegada(producto.getFechaLLegada());
+            nuevo.setFechaLlegada(producto.getFechaLlegada());
 
             if ("Sandwich".equalsIgnoreCase(producto.getCategoria())) {
                 nuevo.setTamano("N/A");
@@ -156,11 +159,38 @@ public class ProductoController {
         return productoRepository.findAllByOrderByFechaElaboracionAsc();
     }
 
-    @GetMapping("/reporte/stock-por-categoria")
-    @Operation(summary = "Para saber cuántos productos hay de una categoría específica")
-    public ResponseEntity<String> stockPorCategoria(@RequestParam String categoria) {
-        List<Producto> lista = productoRepository.findByCategoriaIgnoreCase(categoria);
-        return ResponseEntity.ok("En la categoría " + categoria + " hay " + lista.size() + " unidades en sistema.");
+    @GetMapping("/reporte/stock-detallado")
+    @Operation(summary = "Ver total y detalle agrupado por nombre de una categoría")
+    public ResponseEntity<ResumenStockDTO> obtenerStockDetallado(@RequestParam String categoria) {
+
+        List<Producto> productos = productoRepository.findByCategoriaIgnoreCase(categoria);
+
+        long totalGlobal = productos.size();
+
+        Map<String, Long> detalle = productos.stream()
+                .collect(Collectors.groupingBy(
+                        p -> p.getNombre() + " (" + (p.getTamano() != null ? p.getTamano() : "N/A") + ")",
+                        Collectors.counting()
+                ));
+
+        return ResponseEntity.ok(new ResumenStockDTO(categoria, totalGlobal, detalle));
+    }
+
+    @GetMapping("/reporte/alerta-reposicion")
+    @Operation(summary = "Lista de productos con stock crítico (Enteros y Trozados con)")
+    public List<Producto> obtenerAlertasStock() {
+        return productoRepository.findAll().stream()
+                .filter(p -> {
+                    if ("no".equalsIgnoreCase(p.getEsEntero())) {
+                        return p.getStockTrozos() <= 5;
+                    }
+
+                    if ("si".equalsIgnoreCase(p.getEsEntero())) {
+                        return p.getStockTrozos() <= 1;
+                    }
+                    return false;
+                })
+                .collect(Collectors.toList());
     }
 
 }

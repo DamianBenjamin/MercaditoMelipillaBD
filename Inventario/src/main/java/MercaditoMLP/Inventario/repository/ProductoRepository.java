@@ -20,4 +20,6 @@ public interface ProductoRepository  extends JpaRepository<Producto, Long> {
 
     List<Producto> findByCategoriaIgnoreCase(String categoria);
 
+    long countByFechaLlegada(LocalDate fecha);
+
 }

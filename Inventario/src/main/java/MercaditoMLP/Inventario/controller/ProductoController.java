@@ -142,4 +142,12 @@ public class ProductoController {
         return productoRepository.findByCategoriaIgnoreCase(categoria);
     }
 
+    @GetMapping("/reporte/conteo-dia")
+    @Operation(summary = "Contar cuántos productos llegaron en una fecha específica")
+    public ResponseEntity<Long> contarPorDia(@RequestParam String fecha) {
+        LocalDate fechaBusqueda = LocalDate.parse(fecha);
+        long total = productoRepository.countByFechaLlegada(fechaBusqueda);
+        return ResponseEntity.ok(total);
+    }
+
 }

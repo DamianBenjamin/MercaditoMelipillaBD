@@ -1,6 +1,7 @@
 package MercaditoMLP.Inventario.controller;
 
 
+import MercaditoMLP.Inventario.dto.ReporteJerarquicoDTO;
 import MercaditoMLP.Inventario.dto.ResumenStockDTO;
 import MercaditoMLP.Inventario.model.Producto;
 import MercaditoMLP.Inventario.repository.ProductoRepository;
@@ -176,17 +177,46 @@ public class ProductoController {
         return ResponseEntity.ok(new ResumenStockDTO(categoria, totalGlobal, detalle));
     }
 
+    @GetMapping("/reporte/jerarquico-completo")
+    @Operation(summary = "Reporte total: General -> Por Categoría -> Por Producto")
+    public ResponseEntity<ReporteJerarquicoDTO> obtenerReporteJerarquico() {
+        List<Producto> todos = productoRepository.findAll();
+        long totalGeneral = todos.size();
+
+        Map<String, ReporteJerarquicoDTO.CategoriaDetalle> detalleFinal = todos.stream()
+                .collect(Collectors.groupingBy(
+                        Producto::getCategoria,
+                        Collectors.collectingAndThen(
+                                Collectors.toList(),
+                                listaPorCat -> {
+                                    long totalCat = listaPorCat.size();
+                                    Map<String, Long> productosDetalle = listaPorCat.stream()
+                                            .collect(Collectors.groupingBy(
+                                                    p -> p.getNombre() + " (" + (p.getTamano() != null ? p.getTamano() : "N/A") + ")",
+                                                    Collectors.counting()
+                                            ));
+                                    return new ReporteJerarquicoDTO.CategoriaDetalle(totalCat, productosDetalle);
+                                }
+                        )
+                ));
+
+        return ResponseEntity.ok(new ReporteJerarquicoDTO(totalGeneral, detalleFinal));
+    }
+
     @GetMapping("/reporte/alerta-reposicion")
     @Operation(summary = "Lista de productos con stock crítico (Enteros y Trozados con)")
     public List<Producto> obtenerAlertasStock() {
         return productoRepository.findAll().stream()
                 .filter(p -> {
+
+                    int stock = (p.getStockTrozos() != null) ? p.getStockTrozos() : 0;
+
                     if ("no".equalsIgnoreCase(p.getEsEntero())) {
-                        return p.getStockTrozos() <= 5;
+                        return stock <= 5;
                     }
 
                     if ("si".equalsIgnoreCase(p.getEsEntero())) {
-                        return p.getStockTrozos() <= 1;
+                        return stock <= 1;
                     }
                     return false;
                 })

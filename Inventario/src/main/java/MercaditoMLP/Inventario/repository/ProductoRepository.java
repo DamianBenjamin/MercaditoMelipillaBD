@@ -23,4 +23,5 @@ public interface ProductoRepository  extends JpaRepository<Producto, Long> {
     long countByFechaLlegada(LocalDate fecha);
     List<Producto> findAllByOrderByFechaElaboracionAsc();
 
+    List<Producto> findByFechaLlegada(LocalDate fechaBusqueda);
 }

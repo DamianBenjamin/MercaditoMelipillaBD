@@ -8,6 +8,7 @@ import MercaditoMLP.Inventario.repository.ProductoRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -146,12 +147,39 @@ public class ProductoController {
         return productoRepository.findByCategoriaIgnoreCase(categoria);
     }
 
-    @GetMapping("/reporte/conteo-dia")
-    @Operation(summary = "Contar cuántos productos llegaron en una fecha específica")
-    public ResponseEntity<Long> contarPorDia(@RequestParam String fecha) {
+    @GetMapping("/reporte/por-fecha")
+    @Operation(summary = "Reporte detallado por fecha específica: Total -> Categoría -> Producto")
+    public ResponseEntity<?> obtenerReportePorFecha(@RequestParam String fecha) {
+
         LocalDate fechaBusqueda = LocalDate.parse(fecha);
-        long total = productoRepository.countByFechaLlegada(fechaBusqueda);
-        return ResponseEntity.ok(total);
+
+        List<Producto> productosDelDia = productoRepository.findByFechaLlegada(fechaBusqueda);
+
+        if (productosDelDia.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("No se encontraron productos registrados en la fecha: " + fecha);
+        }
+
+        long totalGeneral = productosDelDia.size();
+
+        Map<String, ReporteJerarquicoDTO.CategoriaDetalle> detalleFinal = productosDelDia.stream()
+                .collect(Collectors.groupingBy(
+                        Producto::getCategoria,
+                        Collectors.collectingAndThen(
+                                Collectors.toList(),
+                                listaPorCat -> {
+                                    long totalCat = listaPorCat.size();
+                                    Map<String, Long> productosDetalle = listaPorCat.stream()
+                                            .collect(Collectors.groupingBy(
+                                                    p -> p.getNombre() + " (" + (p.getTamano() != null ? p.getTamano() : "N/A") + ")",
+                                                    Collectors.counting()
+                                            ));
+                                    return new ReporteJerarquicoDTO.CategoriaDetalle(totalCat, productosDetalle);
+                                }
+                        )
+                ));
+
+        return ResponseEntity.ok(new ReporteJerarquicoDTO(totalGeneral, detalleFinal));
     }
 
     @GetMapping("/reporte/prioridad-venta")

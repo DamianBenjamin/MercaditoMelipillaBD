@@ -32,6 +32,14 @@ public class ProductoController {
         return productoRepository.findAll();
     }
 
+    @GetMapping("/reporte/detallado-por-nombre")
+    @Operation(summary = "Obtiene todos los productos agrupados por nombre pero con sus detalles individuales")
+    public Map<String, List<Producto>> obtenerDetalleParaGestion() {
+        List<Producto> todos = productoRepository.findAll();
+        // Agrupamos por nombre para que el Frontend sepa qué "carpetas" crear
+        return todos.stream().collect(Collectors.groupingBy(Producto::getNombre));
+    }
+
     @PostMapping
     @Operation(summary = "Agregar Producto")
     public ResponseEntity<String> crearProducto(
@@ -114,6 +122,45 @@ public class ProductoController {
                     return ResponseEntity.ok(productoRepository.save(producto));
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Editar un producto por su ID (Corrección de datos)")
+    public ResponseEntity<Producto> editarProducto(@PathVariable Long id, @RequestBody Producto productoEditado) {
+        return productoRepository.findById(id)
+                .map(producto -> {
+                    // Actualizamos los campos básicos
+                    producto.setNombre(productoEditado.getNombre());
+                    producto.setCategoria(productoEditado.getCategoria());
+                    producto.setFechaElaboracion(productoEditado.getFechaElaboracion());
+                    producto.setFechaLlegada(productoEditado.getFechaLlegada());
+                    producto.setTamano(productoEditado.getTamano());
+
+                    // Si cambian la categoría a Sandwich, aplicamos la regla de negocio automáticamente
+                    if ("Sandwich".equalsIgnoreCase(productoEditado.getCategoria())) {
+                        producto.setTamano("N/A");
+                        producto.setEsEntero("si");
+                        producto.setStockTrozos(1);
+                    } else {
+                        producto.setEsEntero(productoEditado.getEsEntero());
+                        producto.setStockTrozos(productoEditado.getStockTrozos());
+                    }
+
+                    return ResponseEntity.ok(productoRepository.save(producto));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar un producto directamente por su ID")
+    public ResponseEntity<Void> eliminarProducto(@PathVariable Long id) {
+        if (productoRepository.existsById(id)) {
+            productoRepository.deleteById(id);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 
 

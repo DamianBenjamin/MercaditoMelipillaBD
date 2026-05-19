@@ -81,23 +81,41 @@ public class ProductoController {
 
     @PutMapping("/{id}/productoEnteroTrozar")
     @Operation(summary = "Editar Productos Entero por trozos")
-    public ResponseEntity<Producto> trozarPastel(@PathVariable Long id, @RequestParam Integer TrozosVendidos) {
+    public ResponseEntity<?> trozarProducto(
+            @PathVariable Long id,
+            @RequestParam int trozos) {
+
         return productoRepository.findById(id)
                 .map(producto -> {
-                    producto.setEsEntero("no");
-                    int totalBase = 0;
+                    // Evitamos errores de NullPointerException usando limpiadores seguros
+                    String categoria = (producto.getCategoria() != null) ? producto.getCategoria().toLowerCase().trim() : "";
+                    String tamano = (producto.getTamano() != null) ? producto.getTamano().toLowerCase().trim() : "";
 
-                    if ("Grande".equalsIgnoreCase(producto.getTamano())) {
-                        totalBase = 8;
-                    } else if ("Mediano".equalsIgnoreCase(producto.getTamano())) {
-                        totalBase = 4;
+                    // 1. Validación de Categoría flexible (acepta pastelería con/sin tilde, tortas, etc.)
+                    if (!categoria.contains("pasteleria") && !categoria.contains("pastelería") && !categoria.contains("torta")) {
+                        return ResponseEntity.badRequest().body("Solo se pueden trozar productos de pastelería o tortas.");
                     }
 
-                    int saldoRestante = totalBase - TrozosVendidos;
+                    // 2. Validación de Tamaño flexible (si el tamaño contiene "grande" o si el nombre del producto dice "grande")
+                    String nombreCompleto = (producto.getNombre() != null) ? producto.getNombre().toLowerCase() : "";
+                    if (!tamano.contains("grande") && !nombreCompleto.contains("grande")) {
+                        return ResponseEntity.badRequest().body("Solo se pueden trozar pasteles grandes.");
+                    }
 
-                    producto.setStockTrozos(saldoRestante);
+                    // 3. Validación de estado
+                    if ("no".equalsIgnoreCase(producto.getEsEntero())) {
+                        return ResponseEntity.badRequest().body("Este producto ya ha sido trozado.");
+                    }
+                    if (trozos <= 0) {
+                        return ResponseEntity.badRequest().body("La cantidad de trozos debe ser mayor a 0.");
+                    }
 
-                    return ResponseEntity.ok(productoRepository.save(producto));
+                    // Aplicamos los cambios y guardamos en Neon
+                    producto.setEsEntero("No");
+                    producto.setStockTrozos(trozos);
+
+                    productoRepository.save(producto);
+                    return ResponseEntity.ok().body("Producto trozado exitosamente en " + trozos + " porciones.");
                 })
                 .orElse(ResponseEntity.notFound().build());
     }

@@ -1,6 +1,5 @@
 package MercaditoMLP.Inventario.controller;
 
-
 import MercaditoMLP.Inventario.dto.ReporteJerarquicoDTO;
 import MercaditoMLP.Inventario.dto.ResumenStockDTO;
 import MercaditoMLP.Inventario.model.Producto;
@@ -213,11 +212,10 @@ public class ProductoController {
     }
 
     @GetMapping("/reporte/por-fecha")
-    @Operation(summary = "Reporte detallado por fecha específica: Total -> Categoría -> Producto")
+    @Operation(summary = "Reporte detallado por fecha específica: Total -> Categoría -> Producto con Alertas")
     public ResponseEntity<?> obtenerReportePorFecha(@RequestParam String fecha) {
 
         LocalDate fechaBusqueda = LocalDate.parse(fecha);
-
         List<Producto> productosDelDia = productoRepository.findByFechaLlegada(fechaBusqueda);
 
         if (productosDelDia.isEmpty()) {
@@ -244,7 +242,29 @@ public class ProductoController {
                         )
                 ));
 
-        return ResponseEntity.ok(new ReporteJerarquicoDTO(totalGeneral, detalleFinal));
+        // Corregido para usar setters individuales y mapear alertas también por fecha
+        ReporteJerarquicoDTO reporte = new ReporteJerarquicoDTO();
+        reporte.setTotalGeneral(totalGeneral);
+        reporte.setDetallePorCategoria(detalleFinal);
+        reporte.setAlertasStock(new java.util.ArrayList<>());
+
+        detalleFinal.forEach((categoriaNombre, detalleCat) -> {
+            if (detalleCat.getProductos() != null) {
+                detalleCat.getProductos().forEach((nombreConTamano, cantidadTotal) -> {
+                    if (cantidadTotal <= 2) {
+                        MercaditoMLP.Inventario.dto.AlertaStockDTO nuevaAlerta = new MercaditoMLP.Inventario.dto.AlertaStockDTO();
+                        nuevaAlerta.setProductoNombre(nombreConTamano);
+                        nuevaAlerta.setCategoria(categoriaNombre);
+                        nuevaAlerta.setCantidadActual(cantidadTotal.intValue());
+                        nuevaAlerta.setEstado(cantidadTotal <= 1 ? "CRÍTICO" : "ADVERTENCIA");
+
+                        reporte.getAlertasStock().add(nuevaAlerta);
+                    }
+                });
+            }
+        });
+
+        return ResponseEntity.ok(reporte);
     }
 
     @GetMapping("/reporte/prioridad-venta")
@@ -258,7 +278,6 @@ public class ProductoController {
     public ResponseEntity<ResumenStockDTO> obtenerStockDetallado(@RequestParam String categoria) {
 
         List<Producto> productos = productoRepository.findByCategoriaIgnoreCase(categoria);
-
         long totalGlobal = productos.size();
 
         Map<String, Long> detalle = productos.stream()
@@ -292,8 +311,28 @@ public class ProductoController {
                                 }
                         )
                 ));
+        ReporteJerarquicoDTO reporte = new ReporteJerarquicoDTO();
+        reporte.setTotalGeneral(totalGeneral);
+        reporte.setDetallePorCategoria(detalleFinal);
+        reporte.setAlertasStock(new java.util.ArrayList<>());
 
-        return ResponseEntity.ok(new ReporteJerarquicoDTO(totalGeneral, detalleFinal));
+        detalleFinal.forEach((categoriaNombre, detalleCat) -> {
+            if (detalleCat.getProductos() != null) {
+                detalleCat.getProductos().forEach((nombreConTamano, cantidadTotal) -> {
+                    if (cantidadTotal <= 2) {
+                        MercaditoMLP.Inventario.dto.AlertaStockDTO nuevaAlerta = new MercaditoMLP.Inventario.dto.AlertaStockDTO();
+                        nuevaAlerta.setProductoNombre(nombreConTamano);
+                        nuevaAlerta.setCategoria(categoriaNombre);
+                        nuevaAlerta.setCantidadActual(cantidadTotal.intValue());
+                        nuevaAlerta.setEstado(cantidadTotal <= 1 ? "CRÍTICO" : "ADVERTENCIA");
+
+                        reporte.getAlertasStock().add(nuevaAlerta);
+                    }
+                });
+            }
+        });
+
+        return ResponseEntity.ok(reporte);
     }
 
     @GetMapping("/reporte/alerta-reposicion")

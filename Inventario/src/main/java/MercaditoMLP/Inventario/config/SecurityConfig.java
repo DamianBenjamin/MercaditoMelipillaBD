@@ -39,6 +39,10 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        // 2. 🌟 CONSULTAS PÚBLICAS (GET): Permitir explícitamente a ambos locales ANTES de bloquear los métodos de escritura
+                        .requestMatchers(HttpMethod.GET, "/api/productos/**").hasAnyRole("VENTAS", "PRODUCCION")
+                        .requestMatchers("/api/notas/**").hasAnyRole("VENTAS", "PRODUCCION")
+
                         // 🛑 RESTRICCIONES DURAS DE CAPA DE NEGOCIO (RBAC)
                         // Modificaciones lógicas, borrados e ingresos: Exclusivos del Local 2
                         .requestMatchers(HttpMethod.POST, "/api/productos/**").hasRole("VENTAS")

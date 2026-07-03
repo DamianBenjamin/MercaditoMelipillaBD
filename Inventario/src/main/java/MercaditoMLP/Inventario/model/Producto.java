@@ -20,9 +20,9 @@ public class Producto {
 
     private String categoria;
     private String nombre;
-    private String tamano; //grande o mediano
-    private String esEntero; //producto entero o trozado
-    private Integer stockTrozos; //cantidad de trozos
+    private String tamano;
+    private String esEntero;
+    private Integer stockTrozos;
 
     private LocalDate fechaElaboracion;
 

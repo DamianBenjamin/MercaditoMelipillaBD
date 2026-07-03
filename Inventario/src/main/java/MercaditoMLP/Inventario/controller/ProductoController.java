@@ -3,6 +3,7 @@ package MercaditoMLP.Inventario.controller;
 import MercaditoMLP.Inventario.dto.ReporteJerarquicoDTO;
 import MercaditoMLP.Inventario.dto.ResumenStockDTO;
 import MercaditoMLP.Inventario.model.Producto;
+import MercaditoMLP.Inventario.repository.CatalogoProductoRepository;
 import MercaditoMLP.Inventario.repository.ProductoRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +25,9 @@ public class ProductoController {
 
     @Autowired
     private ProductoRepository productoRepository;
+
+    @Autowired
+    private CatalogoProductoRepository catalogoRepository;
 
     @GetMapping
     @Operation(summary = "Ver todos los Producto")
@@ -47,6 +51,11 @@ public class ProductoController {
 
         if (cantidad <= 0) {
             return ResponseEntity.badRequest().body("Error: La cantidad debe ser al menos 1");
+        }
+
+        boolean existeEnCatalogo = catalogoRepository.findByNombreIgnoreCase(producto.getNombre()).isPresent();
+        if (!existeEnCatalogo) {
+            return ResponseEntity.badRequest().body("Error: El producto '" + producto.getNombre() + "' no está registrado en la Lista Maestra. Regístrelo primero desde el catálogo.");
         }
 
         for (int i = 0; i < cantidad; i++) {
@@ -141,12 +150,17 @@ public class ProductoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-
     @PutMapping("/{id}")
     @Operation(summary = "Editar un producto por su ID (Corrección de datos)")
-    public ResponseEntity<Producto> editarProducto(@PathVariable Long id, @RequestBody Producto productoEditado) {
+    public ResponseEntity<?> editarProducto(@PathVariable Long id, @RequestBody Producto productoEditado) {
         return productoRepository.findById(id)
                 .map(producto -> {
+                    // 🛑 VALIDACIÓN INFRANQUEABLE ADICIONAL AL EDITAR: El nuevo nombre también debe validarse
+                    boolean existeEnCatalogo = catalogoRepository.findByNombreIgnoreCase(productoEditado.getNombre()).isPresent();
+                    if (!existeEnCatalogo) {
+                        return ResponseEntity.badRequest().body("Error: El nombre '" + productoEditado.getNombre() + "' no existe en el catálogo maestro.");
+                    }
+
                     // Actualizamos los campos básicos
                     producto.setNombre(productoEditado.getNombre());
                     producto.setCategoria(productoEditado.getCategoria());
@@ -169,7 +183,6 @@ public class ProductoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar un producto directamente por su ID")
     public ResponseEntity<Void> eliminarProducto(@PathVariable Long id) {
@@ -179,7 +192,6 @@ public class ProductoController {
         }
         return ResponseEntity.notFound().build();
     }
-
 
     @DeleteMapping("/eliminar-uno")
     @Operation(summary = "Eliminar Producto 1 por 1")
@@ -242,7 +254,6 @@ public class ProductoController {
                         )
                 ));
 
-        // Corregido para usar setters individuales y mapear alertas también por fecha
         ReporteJerarquicoDTO reporte = new ReporteJerarquicoDTO();
         reporte.setTotalGeneral(totalGeneral);
         reporte.setDetallePorCategoria(detalleFinal);
@@ -354,5 +365,4 @@ public class ProductoController {
                 })
                 .collect(Collectors.toList());
     }
-
 }

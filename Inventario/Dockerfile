@@ -4,7 +4,7 @@ COPY . .
 RUN mvn clean package -DskipTests
 
 # Paso 2: Ejecución de la aplicación con una imagen ligera de Java 17
-FROM openjdk:17-jdk-slim
+FROM openjdk:21-jdk-slim
 COPY --from=build /target/*.jar app.jar
 EXPOSE 8081
 ENTRYPOINT ["java", "-jar", "app.jar"]

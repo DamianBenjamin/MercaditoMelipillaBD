@@ -21,7 +21,7 @@ public class DataInitializer implements CommandLineRunner {
         // Si no existen usuarios en Neon, los creamos por defecto
         if (usuarioRepository.count() == 0) {
 
-            // 🏭 LOCAL 1: Fábrica (Solo ver listas, alertas y notas)
+            //  LOCAL 1: Fábrica (Solo ver listas, alertas y notas)
             Usuario fabrica = new Usuario();
             fabrica.setUsername("local1");
             fabrica.setPassword("dulcinea123"); // Se guardará encriptada automáticamente
@@ -29,7 +29,7 @@ public class DataInitializer implements CommandLineRunner {
             fabrica.setRol("ROLE_PRODUCCION");
             usuarioService.registrarUsuario(fabrica);
 
-            // 🍰 LOCAL 2: Ventas (Control total: ingresar, eliminar, trozar)
+            //  LOCAL 2: Ventas (Control total: ingresar, eliminar, trozar)
             Usuario ventas = new Usuario();
             ventas.setUsername("local2");
             ventas.setPassword("ventas123");

@@ -1,16 +1,16 @@
-# Paso 1: Usar una imagen oficial de Maven con Java 17 para compilar
-FROM maven:3.8.5-openjdk-17 AS build
+# Paso 1: Usar una imagen oficial de Maven con Java 21 para compilar
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
-# Copiar el archivo de configuración de dependencias y el código fuente
+# Copiar archivos de configuración y el código fuente
 COPY pom.xml .
 COPY src ./src
 
-# Compilar de forma global saltando los tests
+# Compilar saltando los tests para máxima velocidad
 RUN mvn clean package -DskipTests
 
-# Paso 2: Crear la imagen ligera de ejecución
-FROM openjdk:17-jdk-slim
+# Paso 2: Crear la imagen ligera de ejecución con Java 21 (Temurin es la oficial actual)
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
 # Copiar el archivo JAR

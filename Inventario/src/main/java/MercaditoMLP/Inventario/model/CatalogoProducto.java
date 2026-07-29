@@ -18,6 +18,6 @@ public class CatalogoProducto {
     @Column(nullable = false)
     private String categoriaDefecto;
 
-    @Column(name = "precio_unitario", nullable = false)
+    @Column(name = "precio_unitario", nullable = true)
     private Double precioUnitario = 0.0;
 }
